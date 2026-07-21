@@ -1,7 +1,26 @@
 const { SlashCommandBuilder } = require('discord.js');
-const ui = require('../../systems/ui');
-const db = require('../../database');
+
 module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('meuperfil')
+    .setDescription('Comando do sistema'),
+
+  async execute(interaction, dados) {
+    const { bot, config, db, ui, extras, gerImg, lb } = dados;
+
+    // === SEU CÓDIGO ORIGINAL ABAIXO ===
+const { SlashCommandBuilder } = require('discord.js');
+
+  data: new SlashCommandBuilder()
+    .setName('meuperfil')
+    .setDescription('Comando do sistema'),
+
+  async execute(interaction, dados) {
+    const { bot, config, db, ui, extras, gerImg, lb } = dados;
+
+    // === SEU CÓDIGO ORIGINAL ABAIXO ===
+const { SlashCommandBuilder } = require('discord.js');
+const ui = require('../../systems/ui');
   data: new SlashCommandBuilder().setName('meuperfil').setDescription('👤 Seu perfil'),
   async executar(i, bot){
     const d = db.pegar();
@@ -12,5 +31,9 @@ module.exports = {
     return i.editReply({embeds:[ui.embed(`👤 ${i.user.username}`,
       `🎖️ Nível: **${n.nome}**\n💸 Desconto: **${n.desconto}%**\n💰 Gasto: **R$ ${(u.gastoTotal||0).toFixed(2)}**\n📦 Compras: **${u.vendas||0}**\n🪙 Pontos: **${p}**\n📈 Próximo: ${prox?`R$ ${(prox.minimo-(u.gastoTotal||0)).toFixed(2)}`:'✅ MÁXIMO'}`,
       'principal').setColor(n.cor).setThumbnail(i.user.displayAvatarURL({dynamic:true}))]});
+  }
+};
+  }
+};
   }
 };

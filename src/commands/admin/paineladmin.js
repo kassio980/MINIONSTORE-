@@ -1,7 +1,16 @@
 const { SlashCommandBuilder } = require('discord.js');
-const ui = require('../../systems/ui');
-const db = require('../../database');
+
 module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('paineladmin')
+    .setDescription('Comando do sistema'),
+
+  async execute(interaction, dados) {
+    const { bot, config, db, ui, extras, gerImg, lb } = dados;
+
+    // === SEU CÓDIGO ORIGINAL ABAIXO ===
+const { SlashCommandBuilder } = require('discord.js');
+const ui = require('../../systems/ui');
   data: new SlashCommandBuilder().setName('paineladmin').setDescription('🔧 Painel ADMIN'),
   async executar(i, bot){
     if(!i.member.permissions.has('Administrator')) return i.editReply({embeds:[ui.embed('❌ NEGADO','Só administradores','erro')]});
@@ -16,5 +25,7 @@ module.exports = {
       ui.linhas({id:'admin_criarcupom',nome:'🎟️ CUPOM',estilo:'Success'},{id:'admin_criargift',nome:'🎁 GIFT',estilo:'Primary'},{id:'admin_ranking',nome:'🏆 RANKING',estilo:'Secondary'},{id:'admin_togglebf',nome:(d.config.blackFriday?'🖤 BF OFF':'🔥 BF ON'),estilo:'Danger'}),
       ui.linhas({id:'admin_painelvendas',nome:'📢 PAINEL VENDAS',estilo:'Success'},{id:'admin_painelticket',nome:'🎟️ PAINEL TICKET',estilo:'Primary'},{id:'admin_backup',nome:'💾 BACKUP',estilo:'Secondary'},{id:'inicio_voltar',nome:'🏠 INÍCIO',estilo:'Danger'})
     ]});
+  }
+};
   }
 };
