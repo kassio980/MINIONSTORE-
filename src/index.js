@@ -1,19 +1,11 @@
 // ==============================================
-// ✅ 1º CARREGA VARIÁVEIS ANTES DE TUDO
+// ✅ 1º CARREGA VARIÁVEIS E PACOTES
 // ==============================================
 require('dotenv').config();
-const { joinChannel } = require('@discordjs/voice');
-bot.voice = { joinChannel };
 const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
+const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const fs = require('fs');
 const path = require('path');
-
-// ==============================================
-// 🔍 MOSTRA TUDO O QUE FOI CARREGADO
-// ==============================================
-console.log('📋 Todas variáveis carregadas:');
-console.log('- BOT_TOKEN:', process.env.BOT_TOKEN ? '✅ ENCONTRADA' : '❌ NÃO EXISTE');
-console.log('- Todas as chaves:', Object.keys(process.env).filter(k => k.includes('BOT') || k.includes('TOKEN')));
 
 // ==============================================
 // ✅ 2º CARREGA CONFIGURAÇÕES
@@ -26,21 +18,19 @@ const config = require('./config');
 const tokenReal = process.env.BOT_TOKEN || config.bot.token;
 if (!tokenReal || tokenReal === '' || tokenReal === 'COLOQUE_AQUI_SEU_TOKEN') {
   console.error('❌ ERRO CRÍTICO: Nenhum token encontrado!');
-  console.error('🔑 Verifique no arquivo .env se está escrito EXATAMENTE:');
-  console.error('BOT_TOKEN=seu_token_completo_sem_aspas_sem_espaco');
+  console.error('🔑 Cadastre ele nas variáveis do Render ou .env');
   process.exit(1);
 }
-console.log('✅ Variáveis de ambiente carregadas corretamente');
-
+console.log('✅ Variáveis carregadas corretamente');
 
 // ==============================================
-// 🔒 VALORES FIXOS DECLARADOS APENAS 1 VEZ
+// 🔒 VALORES FIXOS
 // ==============================================
 const SERVIDOR_AUTORIZADO = "1505876225946812440";
 const CANAL_VOZ_ID = "1528719886942212186";
 
 // ==============================================
-// 🤖 CRIA O BOT
+// 🤖 4º CRIA O BOT PRIMEIRO!
 // ==============================================
 const bot = new Client({
   intents: [
@@ -55,14 +45,14 @@ const bot = new Client({
 });
 
 // ==============================================
-// 📦 CARREGA DEMAIS SISTEMAS
+// 📦 5º AGORA SIM CARREGA DEMAIS SISTEMAS
 // ==============================================
 const db = require('./database');
 const ui = require('./systems/ui');
 const extras = require('./systems/sistemasExtras');
 const gerImg = require('./systems/geradorImagem');
 const lb = require('./systems/layoutBuilder');
-require('./systems/webserver'); // Mantém online
+require('./systems/webserver');
 
 // ==============================================
 // 🔌 REGISTRO GLOBAL
@@ -79,10 +69,10 @@ require("./systems/acoes_parte1")(bot);
 require("./systems/acoes_parte2")(bot);
 
 // ==============================================
-// 🔒 SEGURANÇA TOTAL
+// 🔒 SEGURANÇA
 // ==============================================
 function SEGURANCA(i){
-  if(!i.guild){ return false; } // Bloqueia DM
+  if(!i.guild) return false;
   if(i.guild.id !== SERVIDOR_AUTORIZADO){
     console.log(`🛑 BLOQUEADO: ${i.guild.id} | ${i.guild.name}`);
     return false;
@@ -90,11 +80,10 @@ function SEGURANCA(i){
   return true;
 }
 
-// Sai automaticamente de qualquer servidor que não for o autorizado
 bot.on('guildCreate', g => { if(g.id !== SERVIDOR_AUTORIZADO) g.leave().catch(()=>{}) });
 
 // ==============================================
-// 📦 CARREGA TODOS COMANDOS
+// 📦 CARREGA COMANDOS
 // ==============================================
 function carregarComandos(pasta){
   if(!fs.existsSync(pasta)) return;
@@ -112,34 +101,57 @@ carregarComandos(path.join(__dirname,'commands'));
 console.log(`📦 ${bot.comandos.size} comandos carregados`);
 
 // ==============================================
-// 🔊 CANAL DE VOZ FIXO - CORRIGIDO AUTOMATICAMENTE
+// 🔊 CANAL DE VOZ - CORRIGIDO 100%
 // ==============================================
+let conexaoAtual = null;
 const entrarCanal = async () => {
   try{
     const servidor = await bot.guilds.fetch(SERVIDOR_AUTORIZADO);
     const canal = await servidor.channels.fetch(CANAL_VOZ_ID);
 
-    // Verifica se existe e é canal de voz
     if(!canal || canal.type !== 2) {
-      console.log("⚠️ Canal de voz não encontrado ou tipo inválido!");
+      console.log("⚠️ Canal de voz inválido ou não encontrado!");
       setTimeout(entrarCanal, 10000);
       return;
     }
 
-    // Forma correta de conectar no canal
-    await bot.voice.joinChannel(canal);
-    console.log("🔊 CONECTADO COM SUCESSO NO CANAL DE VOZ!");
+    conexaoAtual = joinVoiceChannel({
+      channelId: canal.id,
+      guildId: servidor.id,
+      adapterCreator: servidor.voiceAdapterCreator
+    });
+
+    conexaoAtual.on(VoiceConnectionStatus.Ready, () => {
+      console.log("🔊 CONECTADO COM SUCESSO NO CANAL DE VOZ!");
+    });
+
+    conexaoAtual.on(VoiceConnectionStatus.Disconnected, async () => {
+      try {
+        await Promise.race([
+          entersState(conexaoAtual, VoiceConnectionStatus.Signalling, 5000),
+          entersState(conexaoAtual, VoiceConnectionStatus.Connecting, 5000),
+        ]);
+      } catch {
+        conexaoAtual.destroy();
+        setTimeout(entrarCanal, 3000);
+      }
+    });
+
   }catch(e){
     console.log("⚠️ Tentando conectar voz novamente em 10s... Motivo:", e.message);
     setTimeout(entrarCanal, 10000);
   }
 };
 
+bot.on("voiceStateUpdate", (antigo, novo) => {
+  if(novo.member.id === bot.user.id && !novo.channelId) entrarCanal();
+  if(novo.member.id === bot.user.id && novo.channelId !== CANAL_VOZ_ID) entrarCanal();
+});
+
 // ==============================================
-// 🚀 QUANDO LIGAR - SEM AVISO DEPRECIADO
+// 🚀 QUANDO LIGAR
 // ==============================================
 bot.on('clientReady', () => {
-  // Sai de servidores não autorizados
   bot.guilds.cache.forEach(g => { if(g.id !== SERVIDOR_AUTORIZADO) g.leave().catch(()=>{}) });
   console.log(`\n🟡 ${config.loja.nome.toUpperCase()} ONLINE 🚀`);
   console.log(`🤖 Bot: ${bot.user.tag}`);
@@ -149,35 +161,25 @@ bot.on('clientReady', () => {
   entrarCanal();
 });
 
-bot.on("voiceStateUpdate", (antigo, novo) => {
-  if(novo.member.id === bot.user.id && !novo.channelId) entrarCanal();
-  if(novo.member.id === bot.user.id && novo.channelId !== CANAL_VOZ_ID) entrarCanal();
-});
-
-
 // ==============================================
-// 🛡️ ANTI CRASH MOSTRA TODOS ERROS
+// 🛡️ ANTI CRASH
 // ==============================================
 process.on('unhandledRejection', e => {
-  console.log('⚠️ ERRO PROMESSA:', e);
-  console.log('📄 RASTRO:', e.stack);
+  console.log('⚠️ ERRO PROMESSA:', e.message);
 });
 process.on('uncaughtException', e => {
-  console.log('⚠️ ERRO FATAL:', e);
-  console.log('📄 RASTRO:', e.stack);
+  console.log('⚠️ ERRO FATAL:', e.message);
 });
 
 // ==============================================
-// 🎯 TRATADOR DE INTERAÇÕES COMPLETO
+// 🎯 TRATADOR DE INTERAÇÕES
 // ==============================================
 bot.on('interactionCreate', async i => {
-  // Verifica permissão de servidor primeiro
   if(i.guild?.id !== SERVIDOR_AUTORIZADO) {
     await i.reply({content:'❌ Esse bot só funciona no servidor autorizado!',ephemeral:true}).catch(()=>{});
     return;
   }
 
-  // Trata comandos de barra
   if(i.isChatInputCommand()){
     const comando = bot.comandos.get(i.commandName);
     if(!comando) return await i.reply({content:'❌ Comando não encontrado!',ephemeral:true}).catch(()=>{});
@@ -189,7 +191,6 @@ bot.on('interactionCreate', async i => {
     return;
   }
 
-  // Apenas botões/menus/modais: confirma recebimento
   await i.deferUpdate().catch(() => {});
 
   let tipo = '';
@@ -222,15 +223,8 @@ bot.on('interactionCreate', async i => {
 });
 
 // ==============================================
-// 🔑 LOGIN FINAL
+// 🔑 LOGIN
 // ==============================================
-bot.login(config.bot.token)
-.then(() => console.log('🔑 TOKEN ACEITO, CONEXÃO INICIADA COM SUCESSO'))
-.catch(e => console.log('❌ FALHA NO LOGIN:', e.message, '\n', e.stack));
-
-
-
-
-
-
-
+bot.login(tokenReal)
+.then(() => console.log('🔑 TOKEN ACEITO, CONEXÃO INICIADA!'))
+.catch(e => console.log('❌ FALHA NO LOGIN:', e.message));
