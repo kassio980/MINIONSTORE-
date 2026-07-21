@@ -4,7 +4,7 @@ module.exports = {
     clientId: process.env.BOT_CLIENT_ID
   },
   cores: {
-    principal: 0xFFD700,
+    principal: 0xFF0700,
     sucesso: 0x10B981,
     erro: 0xFF3333,
     info: 0x3B82F6,
