@@ -83,7 +83,7 @@ function SEGURANCA(i){
 bot.on('guildCreate', g => { if(g.id !== SERVIDOR_AUTORIZADO) g.leave().catch(()=>{}) });
 
 // ==============================================
-// 📦 CARREGA COMANDOS
+// 📦 CARREGA COMANDOS COM VERIFICAÇÃO
 // ==============================================
 function carregarComandos(pasta){
   if(!fs.existsSync(pasta)) return;
@@ -93,12 +93,17 @@ function carregarComandos(pasta){
     if(!arq.endsWith('.js')) return;
     try{
       const c = require(cam);
-      if(c?.data?.name){ bot.comandos.set(c.data.name, c); console.log(`✅ CMD: /${c.data.name}`); }
-    }catch(e){ console.log(`⚠️ CMD ERRO ${arq}:`,e.message) }
+      if(c?.data?.name){ 
+        bot.comandos.set(c.data.name, c); 
+        console.log(`✅ CMD CARREGADO: /${c.data.name}`); 
+      } else {
+        console.log(`⚠️ CMD IGNORADO ${arq}: sem estrutura data/execute`);
+      }
+    }catch(e){ console.log(`❌ CMD ERRO ${arq}:`,e.message) }
   });
 }
 carregarComandos(path.join(__dirname,'commands'));
-console.log(`📦 ${bot.comandos.size} comandos carregados`);
+console.log(`📦 TOTAL COMANDOS DISPONIVEIS: ${bot.comandos.size}`);
 
 // ==============================================
 // 🔊 CANAL DE VOZ - CORRIGIDO 100%
@@ -155,24 +160,24 @@ bot.on('clientReady', () => {
   bot.guilds.cache.forEach(g => { if(g.id !== SERVIDOR_AUTORIZADO) g.leave().catch(()=>{}) });
   console.log(`\n🟡 ${config.loja.nome.toUpperCase()} ONLINE 🚀`);
   console.log(`🤖 Bot: ${bot.user.tag}`);
-  console.log(`📦 Comandos: ${bot.comandos.size}`);
-  console.log(`🔒 Servidor: ${SERVIDOR_AUTORIZADO}\n`);
+  console.log(`📦 Comandos prontos: ${bot.comandos.size}`);
+  console.log(`🔒 Servidor autorizado: ${SERVIDOR_AUTORIZADO}\n`);
   bot.user.setActivity({name:'🍌 Minions Store',type:3});
   entrarCanal();
 });
 
 // ==============================================
-// 🛡️ ANTI CRASH
+// 🛡️ ANTI CRASH MOSTRA TUDO
 // ==============================================
 process.on('unhandledRejection', e => {
-  console.log('⚠️ ERRO PROMESSA:', e.message);
+  console.log('⚠️ ERRO:', e.message, '\n📄', e.stack);
 });
 process.on('uncaughtException', e => {
-  console.log('⚠️ ERRO FATAL:', e.message);
+  console.log('⚠️ ERRO FATAL:', e.message, '\n📄', e.stack);
 });
 
 // ==============================================
-// 🎯 TRATADOR DE INTERAÇÕES
+// 🎯 TRATADOR DE COMANDOS COMPLETO
 // ==============================================
 bot.on('interactionCreate', async i => {
   if(i.guild?.id !== SERVIDOR_AUTORIZADO) {
@@ -182,10 +187,16 @@ bot.on('interactionCreate', async i => {
 
   if(i.isChatInputCommand()){
     const comando = bot.comandos.get(i.commandName);
-    if(!comando) return await i.reply({content:'❌ Comando não encontrado!',ephemeral:true}).catch(()=>{});
-    try{ await comando.execute(i); }
-    catch(e){
-      console.error('❌ ERRO NO COMANDO:', e);
+    if(!comando) return await i.reply({
+      content:`❌ Comando /${i.commandName} existe no Discord mas não foi carregado!`,
+      ephemeral:true
+    }).catch(()=>{});
+    try{ 
+      console.log(`▶️ EXECUTANDO: /${i.commandName}`);
+      await comando.execute(i, { bot, config, db, ui, extras, gerImg, lb }); 
+      console.log(`✅ FINALIZOU: /${i.commandName}`);
+    }catch(e){
+      console.error(`❌ ERRO NO COMANDO /${i.commandName}:`, e);
       await i.reply({content:'❌ Erro ao executar esse comando!',ephemeral:true}).catch(()=>{});
     }
     return;

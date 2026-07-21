@@ -1,26 +1,37 @@
+require('dotenv').config();
 const { REST, Routes } = require('discord.js');
-const config = require('./config');
 const fs = require('fs');
 const path = require('path');
+const config = require('./config');
+
 const comandos = [];
-require('dotenv').config();
+const pastaComandos = path.join(__dirname, 'commands');
 
-
-function carregar(pasta){
+function lerPasta(pasta){
   if(!fs.existsSync(pasta)) return;
-  fs.readdirSync(pasta).forEach(item=>{
-    const cam = path.join(pasta,item);
-    if(fs.statSync(cam).isDirectory()) carregar(cam);
-    else if(item.endsWith('.js')) try{
-      const c = require(cam);
-      if(c?.data) comandos.push(c.data.toJSON());
-    }catch(e){console.log(`⚠️ ${item}: ${e.message}`)}
-  })
+  fs.readdirSync(pasta).forEach(arq => {
+    const cam = path.join(pasta, arq);
+    if(fs.statSync(cam).isDirectory()) return lerPasta(cam);
+    if(!arq.endsWith('.js')) return;
+    try{
+      const cmd = require(cam);
+      if(cmd?.data) comandos.push(cmd.data.toJSON());
+    }catch(e){ console.log(`⚠️ Ignorado ${arq}: ${e.message}`) }
+  });
 }
+lerPasta(pastaComandos);
 
-carregar(path.join(__dirname, 'commands'));
+const rest = new REST({version:'10'}).setToken(process.env.BOT_TOKEN || config.bot.token);
 
-new REST({version:'10'}).setToken(config.bot.token)
-.put(Routes.applicationCommands(config.bot.clientId),{body:comandos})
-.then(()=>console.log(`✅ ${comandos.length} COMANDOS REGISTRADOS`))
-.catch(e=>console.log(`❌ ERRO: ${e.message}`))
+(async () => {
+  try{
+    console.log(`🔄 Atualizando ${comandos.length} comandos...`);
+    await rest.put(
+      Routes.applicationGuildCommands(config.bot.clientId, '1505876225946812440'),
+      {body: comandos}
+    );
+    console.log(`✅ ${comandos.length} COMANDOS REGISTRADOS COM SUCESSO`);
+  }catch(e){
+    console.error('❌ ERRO AO REGISTRAR:', e.message);
+  }
+})();
