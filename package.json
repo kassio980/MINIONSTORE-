@@ -1,0 +1,23 @@
+{
+  "name": "minionstore-enterprise",
+  "version": "5.0.0",
+  "description": "Minions Store Enterprise - Layout Builder + Button Builder + Pix + Comprovante Imagem",
+  "main": "src/index.js",
+  "scripts": {
+    "prestart": "node src/deploy.js",
+    "start": "node src/index.js",
+    "dev": "node src/index.js",
+    "test": "node src/deploy.js"
+  },
+  "engines": {
+    "node": ">=20.0.0 <21.0.0"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.19.2",
+    "@napi-rs/canvas": "^0.1.53",
+    "discord.js": "^14.15.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.0",
+    "sodium-native": "^5.1.0"
+  }
+}
