@@ -1,10 +1,10 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder } = require('discord.js');
 module.exports = {
-  data: new SlashCommandBuilder().setName('paineladmin').setDescription('Painel admin').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+  data: new SlashCommandBuilder().setName('paineladmin').setDescription('Painel administrativo').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(i, { bot, config }) {
     await i.deferReply({ ephemeral: true });
     const e = new EmbedBuilder().setColor(config.cores.principal)
-      .setTitle('⚙️ PAINEL ADMINISTRATIVO').setDescription('Gerencie a loja por aqui. Use **/configbotoes** para personalizar estes botões!')
+      .setTitle('⚙️ PAINEL ADMINISTRATIVO').setDescription('Gerencie a loja por aqui.\n\n💡 **/configbotoes** → Personaliza texto/cor/emoji')
       .addFields(
         {name:'📦 Produtos',value:'Cadastrar/Editar/Excluir',inline:true},
         {name:'🎟️ Cupons',value:'Criar/Desativar',inline:true},
@@ -13,10 +13,11 @@ module.exports = {
         {name:'👥 Afiliados',value:'Gerenciar',inline:true},
         {name:'⚙️ Config',value:'Ajustes',inline:true}
       ).setFooter({text:config.loja.nome}).setTimestamp();
+    // ✅ IDS EXATOS DA SUA IMAGEM
     const l1 = new ActionRowBuilder().addComponents(
       bot.criarBotao('btn:abrircadproduto'),
       bot.criarBotao('btn:abrircriarcupom'),
-      bot.criarBotao('btn:abrirtgift')
+      bot.criarBotao('btn:abrirlgift')
     );
     const l2 = new ActionRowBuilder().addComponents(
       bot.criarBotao('btn:relvendas'),

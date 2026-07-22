@@ -1,12 +1,10 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const ui = require('../../systems/ui');
 module.exports = {
-  data: new SlashCommandBuilder().setName('criargiftcard').setDescription('Criar gift').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-  async execute(i) {
-    const m = new ModalBuilder().setCustomId('modal:giftcard').setTitle('💳 GIFT CARD');
-    m.addComponents(
-      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('valor').setLabel('Valor ex: 50.00').setStyle(TextInputStyle.Short).setRequired(true)),
-      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('qtd').setLabel('Quantidade').setStyle(TextInputStyle.Short).setValue('1').setRequired(true))
-    );
-    await i.showModal(m);
+  data: new SlashCommandBuilder().setName('criargiftcard').setDescription('🎁 Criar giftcard').addNumberOption(o=>o.setName('valor').setDescription('Valor R$').setRequired(true)),
+  async executar(i, bot){
+    if(!i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.editReply({embeds:[ui.embed('❌ NEGADO','Só administradores','erro')]});
+    const g = bot.extras.giftcard(i.options.getNumber('valor'));
+    return i.editReply({embeds:[ui.embed('🎁 GIFTCARD',`Código: \`${g.codigo}\`\nValor: **R$ ${g.valor.toFixed(2)}**`,'sucesso')]});
   }
 };

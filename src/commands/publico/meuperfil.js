@@ -1,23 +1,16 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
+const ui = require('../../systems/ui');
+const db = require('../../database');
 module.exports = {
-  data: new SlashCommandBuilder().setName('meuperfil').setDescription('Meu perfil na loja'),
-  async execute(i, { bot, config, db }) {
-    await i.deferReply({ ephemeral: true });
-    const u = i.user;
-    const p = (await db?.getPerfil?.(u.id)) || { compras:0, gasto:0, nivel:1, afiliado:false };
-    const e = new EmbedBuilder().setColor(config.cores.info)
-      .setAuthor({name:u.tag,iconURL:u.displayAvatarURL()}).setTitle('👤 MEU PERFIL')
-      .addFields(
-        {name:'🆔 ID',value:`\`${u.id}\``,inline:true},
-        {name:'⭐ Nível',value:`${p.nivel}`,inline:true},
-        {name:'🛒 Compras',value:`${p.compras}`,inline:true},
-        {name:'💸 Total Gasto',value:`R$ ${parseFloat(p.gasto||0).toFixed(2)}`,inline:true},
-        {name:'💸 Afiliado',value:p.afiliado?'✅ Sim':'❌ Não',inline:true}
-      ).setThumbnail(u.displayAvatarURL()).setTimestamp();
-    const b = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('btn:pedidos').setLabel('📦 Pedidos').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId('btn:cupons').setLabel('🎟️ Cupons').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('btn:ind').setLabel('👥 Indicações').setStyle(ButtonStyle.Secondary));
-    await i.editReply({ embeds:[e], components:[b] });
+  data: new SlashCommandBuilder().setName('meuperfil').setDescription('👤 Seu perfil'),
+  async executar(i, bot){
+    const d = db.pegar();
+    let u = (d.usuarios||[]).find(x=>x.id===i.user.id) || {nome:i.user.username,gastoTotal:0,vendas:0,nivel:1};
+    const n = (d.niveis||[]).find(x=>x.id===u.nivel) || {nome:'Cliente',desconto:0,cor:'#FFD700'};
+    const p = (d.pontos||[]).find(x=>x.usuarioId===i.user.id)?.saldo || 0;
+    const prox = (d.niveis||[]).find(x=>x.id===u.nivel+1);
+    return i.editReply({embeds:[ui.embed(`👤 ${i.user.username}`,
+      `🎖️ Nível: **${n.nome}**\n💸 Desconto: **${n.desconto}%**\n💰 Gasto: **R$ ${(u.gastoTotal||0).toFixed(2)}**\n📦 Compras: **${u.vendas||0}**\n🪙 Pontos: **${p}**\n📈 Próximo: ${prox?`R$ ${(prox.minimo-(u.gastoTotal||0)).toFixed(2)}`:'✅ MÁXIMO'}`,
+      'principal').setColor(n.cor).setThumbnail(i.user.displayAvatarURL({dynamic:true}))]});
   }
 };

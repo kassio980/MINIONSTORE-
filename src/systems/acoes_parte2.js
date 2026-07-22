@@ -1,7 +1,6 @@
 module.exports = (bot) => {
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, PermissionFlagsBits, ChannelType, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
-// Produtos padrão
 const PRODUTOS_PADRAO = [
   {id:'contas',nome:'🎮 Contas Premium',valor:49.90,estoque:999,desc:'Contas garantidas',midia:''},
   {id:'diamantes',nome:'💎 Diamantes',valor:19.90,estoque:999,desc:'Entrega imediata',midia:''},
@@ -10,13 +9,41 @@ const PRODUTOS_PADRAO = [
   {id:'gift50',nome:'🎁 Gift R$50',valor:50,estoque:999,desc:'Gift R$50',midia:''},
   {id:'curso',nome:'📚 Curso Completo',valor:97,estoque:999,desc:'Curso completo',midia:''}
 ];
+const BOTOES_DISPONIVEIS = [
+  {id:'btn:abrircadproduto',nome:'Cadastrar Produto',cor:ButtonStyle.Success,emoji:'➕'},
+  {id:'btn:abrircriarcupom',nome:'Criar Cupom',cor:ButtonStyle.Primary,emoji:'🎟️'},
+  {id:'btn:abrirlgift',nome:'Gift Card',cor:ButtonStyle.Secondary,emoji:'💳'},
+  {id:'btn:abrirtgift',nome:'Gift Card',cor:ButtonStyle.Secondary,emoji:'💳'},
+  {id:'btn:relvendas',nome:'Relatório Vendas',cor:ButtonStyle.Primary,emoji:'📊'},
+  {id:'btn:afil',nome:'Afiliados',cor:ButtonStyle.Secondary,emoji:'👥'},
+  {id:'btn:cfg',nome:'Configurações',cor:ButtonStyle.Danger,emoji:'⚙️'},
+  {id:'btn:abrirticket',nome:'Abrir Ticket',cor:ButtonStyle.Success,emoji:'📩'},
+  {id:'btn:abrirticketreal',nome:'Abrir Ticket',cor:ButtonStyle.Success,emoji:'📩'},
+  {id:'btn:abrirmenucomprar',nome:'Comprar',cor:ButtonStyle.Success,emoji:'🛒'},
+  {id:'btn:regras',nome:'Regras',cor:ButtonStyle.Secondary,emoji:'📜'}
+];
 bot._produtos = bot._produtos?.length ? bot._produtos : PRODUTOS_PADRAO;
-bot._botoesCfg = bot._botoesCfg || {}; // Guarda personalização dos botões
+bot._botoesCfg = bot._botoesCfg || {};
+bot._pedidos = bot._pedidos || {};
+bot._tickets = bot._tickets || {};
+
+// ✅ Função para registrar VÁRIOS IDs na MESMA ação (resolve TUDO)
+const add = (ids, fn) => {
+  (Array.isArray(ids)?ids:[ids]).forEach(id => bot._acoes[id] = fn);
+};
+
+// ✅ Criar botão personalizado
+bot.criarBotao = function(id) {
+  const p = BOTOES_DISPONIVEIS.find(b=>b.id===id) || {nome:id,cor:ButtonStyle.Secondary,emoji:''};
+  const c = this._botoesCfg[id] || {};
+  const label = `${c.emoji||p.emoji? (c.emoji||p.emoji)+' ' : ''}${c.nome||p.nome}`.trim();
+  return new ButtonBuilder().setCustomId(id).setLabel(label.slice(0,80)).setStyle(c.cor||p.cor);
+};
 
 // ==============================================
-// ✅ TODOS OS BOTÕES DO PAINEL ADMIN (SEUS ERROS AQUI)
+// 🔘 PAINEL ADMIN — TODOS OS IDS DA SUA IMAGEM ✅
 // ==============================================
-bot._acoes['btn:abrircadproduto'] = async (i) => {
+const modalCadProduto = async (i) => {
   const m = new ModalBuilder().setCustomId('modal:cadproduto').setTitle('➕ NOVO PRODUTO');
   m.addComponents(
     new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('nome').setLabel('✅ Nome').setStyle(1).setRequired(true).setMaxLength(60)),
@@ -27,8 +54,10 @@ bot._acoes['btn:abrircadproduto'] = async (i) => {
   );
   await i.showModal(m);
 };
+// ✅ REGISTRA EM TODOS OS IDS POSSÍVEIS
+add(['btn:abrircadproduto','btn:cadproduto','btn:cadastrarproduto'], modalCadProduto);
 
-bot._acoes['btn:abrircriarcupom'] = async (i) => {
+const modalCriarCupom = async (i) => {
   const m = new ModalBuilder().setCustomId('modal:criarcupom').setTitle('🎟️ CRIAR CUPOM');
   m.addComponents(
     new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('cod').setLabel('Código ex:MINIONS10').setStyle(1).setRequired(true)),
@@ -38,8 +67,9 @@ bot._acoes['btn:abrircriarcupom'] = async (i) => {
   );
   await i.showModal(m);
 };
+add(['btn:abrircriarcupom','btn:criarcupom','btn:cupom'], modalCriarCupom);
 
-bot._acoes['btn:abrirtgift'] = async (i) => {
+const modalGift = async (i) => {
   const m = new ModalBuilder().setCustomId('modal:giftcard').setTitle('💳 GIFT CARD');
   m.addComponents(
     new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('valor').setLabel('Valor ex:50.00').setStyle(1).setRequired(true)),
@@ -47,29 +77,37 @@ bot._acoes['btn:abrirtgift'] = async (i) => {
   );
   await i.showModal(m);
 };
+// ✅ OS DOIS IDS: com L e com T — AMBOS FUNCIONAM
+add(['btn:abrirlgift','btn:abrirtgift','btn:giftcard','btn:gift'], modalGift);
 
-bot._acoes['btn:relvendas'] = async (i) => {
-  const total = Object.values(bot._pedidos||{}).filter(p=>p.status==='PAGO').reduce((s,p)=>s+Number(p.valor),0);
-  const qtd = Object.values(bot._pedidos||{}).filter(p=>p.status==='PAGO').length;
+const relVendas = async (i) => {
+  const lista = Object.values(bot._pedidos||{});
+  const total = lista.filter(p=>p.status==='PAGO').reduce((s,p)=>s+Number(p.valor),0);
   const e = new EmbedBuilder().setColor('#3b82f6').setTitle('📊 RELATÓRIO DE VENDAS')
-    .addFields({name:'💰 Total',value:`R$ ${total.toFixed(2)}`,inline:true},{name:'🛒 Vendas',value:`${qtd}`,inline:true},{name:'⏳ Pendentes',value:`${Object.values(bot._pedidos||{}).filter(p=>p.status==='AGUARDANDO').length}`,inline:true});
+    .addFields(
+      {name:'💰 Total',value:`R$ ${total.toFixed(2)}`,inline:true},
+      {name:'🛒 Pagas',value:`${lista.filter(p=>p.status==='PAGO').length}`,inline:true},
+      {name:'⏳ Pendentes',value:`${lista.filter(p=>p.status==='AGUARDANDO').length}`,inline:true},
+      {name:'❌ Canceladas',value:`${lista.filter(p=>p.status==='CANCELADO').length}`,inline:true}
+    );
   await i.followUp({embeds:[e],ephemeral:true});
 };
+add(['btn:relvendas','btn:relatorio','btn:vendas'], relVendas);
 
-bot._acoes['btn:afil'] = async (i) => {
-  await i.followUp({content:'👥 **Afiliados**\nUse `/afiliarme` para virar afiliado e ganhar 10% de comissão!',ephemeral:true});
-};
+const afiliados = async (i) => { await i.followUp({content:'👥 **Afiliados**\nUse `/afiliarme` para virar afiliado e ganhar 10% de comissão!',ephemeral:true}); };
+add(['btn:afil','btn:afiliados','btn:afiliar'], afiliados);
 
-bot._acoes['btn:cfg'] = async (i) => {
+const configs = async (i) => {
   const e = new EmbedBuilder().setColor('#dc2626').setTitle('⚙️ CONFIGURAÇÕES')
-    .setDescription('Ajuste o sistema da loja:\n\n✅ **/configbotoes** → Personalizar botões\n✅ **/configloja** → Dados da loja\n✅ **/configpix** → Chave PIX');
+    .setDescription('Comandos disponíveis:\n\n✅ **/configbotoes** → Personalizar texto/cor/emoji\n✅ **/configloja** → Dados da loja\n✅ **/configpix** → Chave PIX');
   await i.followUp({embeds:[e],ephemeral:true});
 };
+add(['btn:cfg','btn:config','btn:configuracoes'], configs);
 
 // ==============================================
-// ✅ BOTÕES DO TICKET
+// 🎫 TICKET
 // ==============================================
-bot._acoes['btn:abrirticket'] = async (i) => {
+const abrirTicket = async (i) => {
   const cfg=bot.config, g=i.guild;
   let cat = g.channels.cache.find(c=>c.type===ChannelType.GuildCategory && c.name.toLowerCase().includes('ticket'));
   if(!cat) cat = await g.channels.create({name:'🎫 TICKETS',type:ChannelType.GuildCategory});
@@ -83,68 +121,69 @@ bot._acoes['btn:abrirticket'] = async (i) => {
   });
   bot._tickets[ch.id]={usuario:i.user.id};
   const e=new EmbedBuilder().setColor(cfg.cores.info).setTitle(`🎫 Ticket #${ch.name.split('-')[1]}`)
-    .setDescription(`Olá ${i.user}!\n\n**📷 Você pode enviar FOTOS e VÍDEOS aqui.**\n\nDescreva seu problema:`);
+    .setDescription(`Olá ${i.user}!\n\n**📷 Você pode enviar FOTOS e VÍDEOS normalmente aqui.**\n\nDescreva seu problema:`);
   const b=new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`btn:fecharticket:${ch.id}`).setLabel('🔒 Fechar').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId(`btn:chamaradm:${ch.id}`).setLabel('👥 Chamar Equipe').setStyle(ButtonStyle.Primary)
   );
   await ch.send({content:`${i.user} <@&${cfg.cargos?.admin||'1505876225946812440'}>`,embeds:[e],components:[b]});
-  await i.followUp({content:`✅ Ticket: ${ch}`,ephemeral:true});
+  await i.followUp({content:`✅ Ticket criado: ${ch}`,ephemeral:true});
 };
+add(['btn:abrirticket','btn:abrirticketreal','btn:abrirticketoficial','btn:abriraticket'], abrirTicket);
 
-bot._acoes['btn:abrirticketreal'] = bot._acoes['btn:abrirticket']; // Ambos os IDs funcionam
-
-bot._acoes['btn:fecharticket_*'] = async (i) => {
+add(['btn:fecharticket_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':');
   const t=bot._tickets[id];
   if(!i.member.permissions.has(PermissionFlagsBits.ManageChannels) && t?.usuario!==i.user.id)
     return i.followUp({content:'🚫 Só ADM/dono',ephemeral:true});
   await i.channel.send('🔒 Fechando em 5s...');
   setTimeout(()=>i.channel.delete().catch(()=>{}),5000);
-};
+});
 
-bot._acoes['btn:chamaradm_*'] = async (i) => {
+add(['btn:chamaradm_*'], async (i) => {
   const cfg=bot.config;
-  await i.channel.send(`⚠️ ${i.user} chamou equipe! <@&${cfg.cargos?.admin||'1505876225946812440'}>`);
-};
+  await i.channel.send(`⚠️ ${i.user} chamou a equipe! <@&${cfg.cargos?.admin||'1505876225946812440'}>`);
+});
 
-bot._acoes['btn:regras'] = async (i) => {
-  const e=new EmbedBuilder().setColor(bot.config.cores.aviso).setTitle('📜 REGRAS')
-    .setDescription('1️⃣ Chargeback = BAN\n2️⃣ Só PIX\n3️⃣ Não compartilhe produto\n4️⃣ Respeite a equipe');
+add(['btn:regras'], async (i) => {
+  const e=new EmbedBuilder().setColor(bot.config.cores.aviso).setTitle('📜 REGRAS DA LOJA')
+    .setDescription('1️⃣ Chargeback = BAN permanente\n2️⃣ Pagamentos somente via PIX\n3️⃣ Não compartilhe o produto\n4️⃣ Respeite a equipe de atendimento');
   await i.followUp({embeds:[e],ephemeral:true});
-};
+});
 
 // ==============================================
-// ✅ MODAIS
+// 📝 MODAIS
 // ==============================================
-bot._acoes['modal:cadproduto'] = async (i) => {
+add(['modal:cadproduto'], async (i) => {
   if(!i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.reply({content:'🚫 Só ADM',ephemeral:true});
   const nome=i.fields.getTextInputValue('nome'), preco=parseFloat(i.fields.getTextInputValue('preco'));
   const est=parseInt(i.fields.getTextInputValue('est'))||999, desc=i.fields.getTextInputValue('desc'), midia=i.fields.getTextInputValue('midia')||'';
   if(isNaN(preco)) return i.reply({content:'❌ Preço inválido',ephemeral:true});
   const novo={id:'prod'+Date.now(),nome,valor:preco,estoque:est,desc,midia}; bot._produtos.push(novo);
   const e=new EmbedBuilder().setColor('#10b981').setTitle('✅ PRODUTO CADASTRADO')
-    .addFields({name:'Nome',value:nome,inline:true},{name:'Preço',value:`R$ ${preco.toFixed(2)}`,inline:true},{name:'Mídia',value:midia||'Sem foto'});
+    .addFields({name:'Nome',value:nome,inline:true},{name:'Preço',value:`R$ ${preco.toFixed(2)}`,inline:true},{name:'Mídia',value:midia||'Sem foto/vídeo'});
   if(midia) e.setImage(midia);
-  await i.reply({embeds:[e],ephemeral:true});
-};
+  await i.reply({content:'✅ Já aparece no menu de compra!',embeds:[e],ephemeral:true});
+});
 
-bot._acoes['modal:criarcupom'] = async (i) => {
+add(['modal:criarcupom'], async (i) => {
   const cod=i.fields.getTextInputValue('cod').toUpperCase(), pct=parseInt(i.fields.getTextInputValue('pct'));
-  const e=new EmbedBuilder().setColor('#3b82f6').setTitle('🎟️ CUPOM').addFields({name:'Código',value:`\`${cod}\``,inline:true},{name:'%',value:`${pct}%`,inline:true});
+  const usos=parseInt(i.fields.getTextInputValue('usos')), dias=parseInt(i.fields.getTextInputValue('dias'));
+  const e=new EmbedBuilder().setColor('#3b82f6').setTitle('🎟️ CUPOM CRIADO')
+    .addFields({name:'Código',value:`\`${cod}\``,inline:true},{name:'%',value:`${pct}%`,inline:true},{name:'Usos',value:`${usos}`,inline:true},{name:'Validade',value:`${dias} dias`,inline:true});
   await i.reply({embeds:[e],ephemeral:true});
-};
+});
 
-bot._acoes['modal:giftcard'] = async (i) => {
+add(['modal:giftcard'], async (i) => {
   const valor=parseFloat(i.fields.getTextInputValue('valor')), qtd=parseInt(i.fields.getTextInputValue('qtd'));
-  const cods=Array.from({length:qtd},()=>'GIFT-'+Math.random().toString(36).slice(2,8).toUpperCase());
+  const cods=Array.from({length:qtd},()=>'GIFT-'+Math.random().toString(36).slice(2,8).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase());
   await i.reply({content:`💳 **${qtd}x Gift R$ ${valor.toFixed(2)}:**\n\`\`\`${cods.join('\n')}\`\`\``,ephemeral:true});
-};
+});
 
 // ==============================================
-// ✅ PIX / VENDAS
+// 💰 PIX / VENDAS
 // ==============================================
-bot._acoes['menu:escolherproduto'] = async (i) => {
+add(['menu:escolherproduto'], async (i) => {
   const p = bot._produtos.find(x=>x.id===i.values[0]) || PRODUTOS_PADRAO.find(x=>x.id===i.values[0]);
   if(!p) return i.followUp({content:'❌ Produto não encontrado',ephemeral:true});
   const cfg=bot.config, pid=`PED${Date.now()}`;
@@ -159,18 +198,19 @@ bot._acoes['menu:escolherproduto'] = async (i) => {
     new ButtonBuilder().setCustomId(`btn:pixcancelar:${pid}`).setLabel('❌ Cancelar').setStyle(ButtonStyle.Danger)
   );
   await i.update({content:'',embeds:[embed],files:[anexoQr],components:[b]});
-};
+});
 
-bot._acoes['btn:pixcopiar_*'] = async (i) => {
+add(['btn:pixcopiar_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':'), ped=bot._pedidos[id];
-  if(!ped) return i.followUp({content:'❌ Não encontrado',ephemeral:true});
+  if(!ped) return i.followUp({content:'❌ Pedido não encontrado',ephemeral:true});
   await i.followUp({content:`📋 **PIX:**\n\`\`\`${ped.pixPayload}\`\`\``,ephemeral:true});
-};
+});
 
-bot._acoes['btn:admpagar_*'] = async (i) => {
+add(['btn:admpagar_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':');
-  if(!i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.followUp({content:'🚫 SÓ ADM!',ephemeral:true});
-  const ped=bot._pedidos[id]; if(!ped||ped.status==='PAGO') return i.followUp({content:ped?'⚠️ Já pago':'❌ Não encontrado',ephemeral:true});
+  if(!i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.followUp({content:'🚫 **SÓ ADMINISTRADORES** confirmam!',ephemeral:true});
+  const ped=bot._pedidos[id]; if(!ped) return i.followUp({content:'❌ Não encontrado',ephemeral:true});
+  if(ped.status==='PAGO') return i.followUp({content:'⚠️ Já foi pago!',ephemeral:true});
   ped.status='PAGO';
   const cfg=bot.config;
   const {embed,anexoQr}=await bot.comprovante.gerarComprovante({usuario:ped.usuarioTag,produto:ped.produto,valor:ped.valor,pedidoId:id,status:'PAGO',chavePix:cfg.pix.chave,titular:cfg.pix.titular,pixPayload:ped.pixPayload});
@@ -185,79 +225,60 @@ bot._acoes['btn:admpagar_*'] = async (i) => {
     await cli.send({embeds:[ent],files:[anexoQr]});
   }catch(e){}
   await i.followUp({content:`✅ \`${id}\` PAGO!`,ephemeral:true});
-};
+});
 
-bot._acoes['btn:pixcancelar_*'] = async (i) => {
+add(['btn:pixcancelar_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':'), ped=bot._pedidos[id]; if(!ped) return;
   if(i.user.id!==ped.usuario && !i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.followUp({content:'🚫',ephemeral:true});
   ped.status='CANCELADO'; await i.message.delete().catch(()=>{});
   await i.followUp({content:`❌ \`${id}\` cancelado.`,ephemeral:true});
-};
+});
 
-bot._acoes['btn:abrirmenucomprar'] = async (i) => {
+const abrirCompra = async (i) => {
   const m=new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('menu:escolherproduto').setPlaceholder('🛒 Escolha')
     .addOptions(bot._produtos.slice(0,25).map(p=>({label:p.nome.slice(0,25),description:`R$ ${Number(p.valor).toFixed(2)}`,value:p.id}))));
   await i.followUp({content:'👇 Produto:',components:[m],ephemeral:true});
 };
-
-bot._acoes['menu:cats'] = bot._acoes['btn:abrirmenucomprar'];
-
-// Outros botões
-['btn:pedidos','btn:afiliar','btn:ajuda','btn:ganhos','btn:saque','btn:ind','btn:cupons'].forEach(id=>{
-  bot._acoes[id]=async(i)=>{await i.followUp({content:`⚙️ **${id}** — em desenvolvimento!`,ephemeral:true})};
-});
-
-}; // FIM
+add(['btn:abrirmenucomprar','btn:comprar','menu:cats'], abrirCompra);
 
 // ==============================================
-// 🎨 SISTEMA DE PERSONALIZAR BOTÕES
+// 🎨 CONFIGURAR BOTÕES
 // ==============================================
-const BOTOES_DISPONIVEIS = [
-  {id:'btn:abrircadproduto',nome:'➕ Cadastrar Produto',cor:3,emoji:'➕'},
-  {id:'btn:abrircriarcupom',nome:'🎟️ Criar Cupom',cor:1,emoji:'🎟️'},
-  {id:'btn:abrirtgift',nome:'💳 Gift Card',cor:2,emoji:'💳'},
-  {id:'btn:relvendas',nome:'📊 Relatório Vendas',cor:1,emoji:'📊'},
-  {id:'btn:afil',nome:'👥 Afiliados',cor:2,emoji:'👥'},
-  {id:'btn:cfg',nome:'⚙️ Configurações',cor:4,emoji:'⚙️'},
-  {id:'btn:abrirticket',nome:'📩 Abrir Ticket',cor:3,emoji:'📩'},
-  {id:'btn:abrirmenucomprar',nome:'🛒 Comprar',cor:3,emoji:'🛒'}
-];
-
-bot._acoes['menu:editarbotao'] = async (i) => {
+add(['menu:editarbotao'], async (i) => {
   const bid = i.values[0];
-  const padrao = BOTOES_DISPONIVEIS.find(b=>b.id===bid);
-  const atual = bot._botoesCfg[bid] || {};
-  const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-  const m = new ModalBuilder().setCustomId(`modal:editbotao:${bid}`).setTitle(`🎨 Editar: ${padrao.nome}`);
+  const p = BOTOES_DISPONIVEIS.find(b=>b.id===bid);
+  const a = bot._botoesCfg[bid] || {};
+  const corNum = {[ButtonStyle.Primary]:1,[ButtonStyle.Secondary]:2,[ButtonStyle.Success]:3,[ButtonStyle.Danger]:4};
+  const m = new ModalBuilder().setCustomId(`modal:editbotao:${bid}`).setTitle(`🎨 Editar: ${p.nome}`);
   m.addComponents(
-    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('nome').setLabel('Texto do botão').setStyle(1).setValue(atual.nome||padrao.nome).setRequired(true).setMaxLength(40)),
-    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('emoji').setLabel('Emoji (opcional)').setStyle(1).setValue(atual.emoji||padrao.emoji||'').setRequired(false).setMaxLength(4)),
-    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('cor').setLabel('Cor: 1=Azul 2=Cinza 3=Verde 4=Vermelho').setStyle(1).setValue(String(atual.cor||padrao.cor)).setRequired(true).setMaxLength(1))
+    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('nome').setLabel('Texto do botão').setStyle(1).setValue(a.nome||p.nome).setRequired(true).setMaxLength(40)),
+    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('emoji').setLabel('Emoji').setStyle(1).setValue(a.emoji||p.emoji||'').setRequired(false).setMaxLength(4)),
+    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('cor').setLabel('1=Azul 2=Cinza 3=Verde 4=Vermelho').setStyle(1).setValue(String(corNum[a.cor]||corNum[p.cor]||3)).setRequired(true).setMaxLength(1))
   );
   await i.showModal(m);
-};
+});
 
-bot._acoes['modal:editbotao_*'] = async (i) => {
+add(['modal:editbotao_*'], async (i) => {
   const bid = i.customId.split(':').slice(2).join(':');
   const nome = i.fields.getTextInputValue('nome').trim();
   const emoji = i.fields.getTextInputValue('emoji').trim();
   let cor = parseInt(i.fields.getTextInputValue('cor'));
   if(![1,2,3,4].includes(cor)) cor = 3;
-  bot._botoesCfg[bid] = { nome, emoji, cor };
-  await i.reply({content:`✅ **Botão atualizado!**\n\n\`${bid}\`\n**Texto:** ${emoji} ${nome}\n**Cor:** ${['','Azul','Cinza','Verde','Vermelho'][cor]}`,ephemeral:true});
-};
+  const corMap = {1:ButtonStyle.Primary,2:ButtonStyle.Secondary,3:ButtonStyle.Success,4:ButtonStyle.Danger};
+  const corNome = {1:'Azul',2:'Cinza',3:'Verde',4:'Vermelho'};
+  bot._botoesCfg[bid] = { nome, emoji, cor:corMap[cor] };
+  await i.reply({content:`✅ **Botão atualizado!**\n\n\`${bid}\`\n**Texto:** ${emoji} ${nome}\n**Cor:** ${corNome[cor]}`,ephemeral:true});
+});
 
-bot._acoes['btn:resetarbotoes'] = async (i) => {
+add(['btn:resetarbotoes'], async (i) => {
   bot._botoesCfg = {};
-  await i.followUp({content:'🔄 Todos botões resetados para o padrão!',ephemeral:true});
-};
+  await i.followUp({content:'🔄 Todos resetados!',ephemeral:true});
+});
 
-// ✅ Função GLOBAL para criar botão personalizado (usada no painel e loja)
-bot.criarBotao = function(id) {
-  const padrao = BOTOES_DISPONIVEIS.find(b=>b.id===id) || {nome:id,cor:2,emoji:''};
-  const cfg = this._botoesCfg[id] || {};
-  return new ButtonBuilder()
-    .setCustomId(id)
-    .setLabel(`${cfg.emoji||padrao.emoji?cfg.emoji||padrao.emoji+' ':''}${cfg.nome||padrao.nome}`.trim())
-    .setStyle(cfg.cor||padrao.cor);
-};
+// ==============================================
+// 🧩 FALTA ALGUM ID? ELE VEM AQUI E NUNCA MAIS DÁ ERRO
+// ==============================================
+const resto = ['btn:pedidos','btn:afiliar','btn:ajuda','btn:ganhos','btn:saque','btn:ind','btn:cupons','btn:addusuario_*','btn:configpix','btn:configloja'];
+resto.forEach(id => add(id, async (i)=>{await i.followUp({content:`⚙️ **${id}** — em desenvolvimento! 🚀`,ephemeral:true})}));
+
+}; // ✅ FIM — NADA ESCRITO DEPOIS DISSO
