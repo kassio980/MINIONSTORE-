@@ -1,26 +1,28 @@
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder } = require('discord.js');
 module.exports = {
-  data: new SlashCommandBuilder().setName('paineladmin').setDescription('Painel administrativo').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+  data: new SlashCommandBuilder().setName('paineladmin').setDescription('Painel admin').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(i, { bot, config }) {
     await i.deferReply({ ephemeral: true });
     const e = new EmbedBuilder().setColor(config.cores.principal)
-      .setTitle('⚙️ PAINEL ADMINISTRATIVO').setDescription('Gerencie TODA a loja por aqui')
+      .setTitle('⚙️ PAINEL ADMINISTRATIVO').setDescription('Gerencie a loja por aqui. Use **/configbotoes** para personalizar estes botões!')
       .addFields(
-        {name:'📦 Produtos',value:'Cadastrar / Editar / Excluir\n✅ **Com FOTO/VÍDEO**',inline:true},
-        {name:'🎟️ Cupons',value:'Criar / Desativar',inline:true},
-        {name:'💳 Gift Cards',value:'Gerar cartões',inline:true},
-        {name:'📊 Vendas',value:'Relatórios completos',inline:true},
-        {name:'👥 Afiliados',value:'Gerenciar afiliados',inline:true},
-        {name:'⚙️ Config',value:'Ajustes do sistema',inline:true}
-      ).setFooter({text:config.loja.nome,iconURL:bot.user.displayAvatarURL()}).setTimestamp();
+        {name:'📦 Produtos',value:'Cadastrar/Editar/Excluir',inline:true},
+        {name:'🎟️ Cupons',value:'Criar/Desativar',inline:true},
+        {name:'💳 Gift',value:'Gerar cartões',inline:true},
+        {name:'📊 Vendas',value:'Relatórios',inline:true},
+        {name:'👥 Afiliados',value:'Gerenciar',inline:true},
+        {name:'⚙️ Config',value:'Ajustes',inline:true}
+      ).setFooter({text:config.loja.nome}).setTimestamp();
     const l1 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('btn:abrircadproduto').setLabel('➕ Cadastrar Produto').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('btn:abrircriarcupom').setLabel('🎟️ Criar Cupom').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId('btn:abrirgift').setLabel('💳 Gift Card').setStyle(ButtonStyle.Secondary));
+      bot.criarBotao('btn:abrircadproduto'),
+      bot.criarBotao('btn:abrircriarcupom'),
+      bot.criarBotao('btn:abrirtgift')
+    );
     const l2 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('btn:relvendas').setLabel('📊 Relatório Vendas').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId('btn:afil').setLabel('👥 Afiliados').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId('btn:cfg').setLabel('⚙️ Configurações').setStyle(ButtonStyle.Danger));
+      bot.criarBotao('btn:relvendas'),
+      bot.criarBotao('btn:afil'),
+      bot.criarBotao('btn:cfg')
+    );
     await i.editReply({ embeds:[e], components:[l1,l2] });
   }
 };
