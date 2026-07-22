@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 module.exports = {
-  data: new SlashCommandBuilder().setName('criargiftcard').setDescription('Criar gift card').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+  data: new SlashCommandBuilder().setName('criargiftcard').setDescription('Criar gift').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(i) {
     const m = new ModalBuilder().setCustomId('modal:giftcard').setTitle('💳 GIFT CARD');
     m.addComponents(

@@ -15,7 +15,7 @@ module.exports = {
       new ButtonBuilder().setCustomId('btn:abrirmenucomprar').setLabel('🛒 Comprar').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId('btn:pedidos').setLabel('📦 Pedidos').setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId('btn:afiliar').setLabel('💸 Afiliar').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId('btn:abrirticket').setLabel('🎧 Atendimento').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('btn:abrirticketreal').setLabel('🎧 Atendimento').setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId('btn:ajuda').setLabel('❓ Ajuda').setStyle(ButtonStyle.Danger)
     );
     const s = new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('menu:cats').setPlaceholder('📂 Ver por categoria')
