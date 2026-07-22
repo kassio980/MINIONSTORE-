@@ -6,3 +6,4 @@ backups/
 .DS_Store
 
 _OLD_ANTIGO_NAO_USAR/
+.env.local
