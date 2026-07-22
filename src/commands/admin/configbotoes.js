@@ -2,7 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder
 const IDS = [
   {id:'btn:abrircadproduto',nome:'➕ Cadastrar Produto'},
   {id:'btn:abrircriarcupom',nome:'🎟️ Criar Cupom'},
-  {id:'btn:abrirlgift',nome:'💳 Gift Card'},
+  {id:'btn:abrirrlgift',nome:'💳 Gift Card'},
   {id:'btn:relvendas',nome:'📊 Relatório Vendas'},
   {id:'btn:afil',nome:'👥 Afiliados'},
   {id:'btn:cfg',nome:'⚙️ Configurações'},
@@ -15,7 +15,7 @@ module.exports = {
     await i.deferReply({ ephemeral: true });
     const cfg = bot._botoesCfg || {};
     const e = new EmbedBuilder().setColor('#8b5cf6').setTitle('🎨 PERSONALIZAR BOTÕES')
-      .setDescription('Escolha qual botão editar. Muda **TEXTO, COR e EMOJI**.')
+      .setDescription('Escolha o botão para editar (texto, cor, emoji).')
       .addFields(IDS.map(b => ({name:(cfg[b.id]?.emoji||'')+' '+(cfg[b.id]?.nome||b.nome),value:`\`${b.id}\``,inline:true})));
     const menu = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder().setCustomId('menu:editarbotao').setPlaceholder('🎨 Escolha o botão')

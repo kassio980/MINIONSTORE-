@@ -25,18 +25,17 @@ const lb = require('./systems/layoutBuilder');
 const pix = require('./systems/pix');
 const comprovante = require('./systems/comprovante');
 require('./systems/webserver');
-console.log('⚠️ Gerador de imagens desativado — bot continua funcionando normalmente');
+console.log('⚠️ Gerador de imagens desativado');
 
 bot.comandos = new Collection();
 bot.db = db; bot.ui = ui; bot.extras = extras; bot.gerImg = gerImg; bot.lb = lb;
 bot.pix = pix; bot.comprovante = comprovante; bot.config = config;
 bot.SERVIDOR = SERVIDOR_AUTORIZADO;
-bot._acoes = {}; bot._pedidos = {}; bot._tickets = {}; bot._produtos = [];
-require("./systems/acoes_parte1")(bot);
-require("./systems/acoes_parte2")(bot);
-console.log('✅ Ações Parte 1 carregadas\n✅ Ações Parte 2 carregadas');
 
-function SEG(i){ if(!i.guild || i.guild.id !== SERVIDOR_AUTORIZADO){ console.log('🛑 BLOQUEADO:',i.guild?.id); return false; } return true; }
+// ✅ CARREGA SÓ O ARQUIVO NOVO DE AÇÕES (TUDO AQUI)
+require("./systems/acoes")(bot);
+
+function SEG(i){ if(!i.guild || i.guild.id !== SERVIDOR_AUTORIZADO) return false; return true; }
 bot.on('guildCreate', g => { if(g.id !== SERVIDOR_AUTORIZADO) g.leave().catch(()=>{}) });
 
 function carregar(p){
@@ -50,7 +49,7 @@ function carregar(p){
   });
 }
 carregar(path.join(__dirname,'commands'));
-console.log(`📦 TOTAL COMANDOS DISPONIVEIS: ${bot.comandos.size}`);
+console.log(`📦 TOTAL COMANDOS: ${bot.comandos.size}`);
 
 let voz = null;
 const entrarVoz = async () => {
@@ -58,7 +57,7 @@ const entrarVoz = async () => {
     const g = await bot.guilds.fetch(SERVIDOR_AUTORIZADO);
     const ch = await g.channels.fetch(CANAL_VOZ_ID);
     voz = joinVoiceChannel({ channelId:ch.id, guildId:g.id, adapterCreator:g.voiceAdapterCreator });
-    voz.on(VoiceConnectionStatus.Ready, () => console.log('🔊 CONECTADO NO CANAL DE VOZ!'));
+    voz.on(VoiceConnectionStatus.Ready, () => console.log('🔊 Voz conectada!'));
     voz.on(VoiceConnectionStatus.Disconnected, async () => { try{ await Promise.race([entersState(voz,VoiceConnectionStatus.Signalling,4000),entersState(voz,VoiceConnectionStatus.Connecting,4000)]) }catch{ voz?.destroy(); setTimeout(entrarVoz,3000) } });
   }catch(e){ console.log('⚠️ Voz:',e.message); setTimeout(entrarVoz,10000) }
 };
@@ -66,7 +65,7 @@ bot.on("voiceStateUpdate", (a,n) => { if(n.member.id===bot.user.id && (!n.channe
 
 bot.on('clientReady', () => {
   bot.guilds.cache.forEach(g => { if(g.id !== SERVIDOR_AUTORIZADO) g.leave().catch(()=>{}) });
-  console.log(`\n🟡 ${config.loja.nome.toUpperCase()} ONLINE 🚀\n🤖 Bot: ${bot.user.tag}\n📦 Comandos prontos: ${bot.comandos.size}\n🔒 Servidor: ${SERVIDOR_AUTORIZADO}\n`);
+  console.log(`\n🟡 ${config.loja.nome.toUpperCase()} ONLINE 🚀\n🤖 Bot: ${bot.user.tag}\n`);
   bot.user.setActivity({name:'🍌 Minions Store',type:3});
   entrarVoz();
 });
@@ -74,9 +73,13 @@ bot.on('clientReady', () => {
 process.on('unhandledRejection', e => console.log('⚠️ ERRO:', e.message));
 process.on('uncaughtException', e => console.log('⚠️ FATAL:', e.message));
 
+// ==============================================
+// ✅ TRATADOR DE INTERAÇÕES
+// ==============================================
 bot.on('interactionCreate', async i => {
   if(!SEG(i)){ if(!i.replied && !i.deferred) await i.reply({content:'❌ Só no servidor autorizado',ephemeral:true}).catch(()=>{}); return; }
 
+  // COMANDOS
   if(i.isChatInputCommand()){
     const cmd = bot.comandos.get(i.commandName);
     if(!cmd) return i.reply({content:`❌ /${i.commandName} não existe`,ephemeral:true}).catch(()=>{});
@@ -89,6 +92,7 @@ bot.on('interactionCreate', async i => {
     return;
   }
 
+  // MODAIS
   if(i.isModalSubmit()){
     const id = `modal:${i.customId}`;
     console.log('📨 MODAL:', id);
@@ -98,6 +102,7 @@ bot.on('interactionCreate', async i => {
     return;
   }
 
+  // BOTÕES / MENUS
   let tipo = i.isButton() ? 'btn:' : i.isStringSelectMenu() ? 'menu:' : null;
   if(!tipo) return;
   const idBusca = `${tipo}${i.customId}`;

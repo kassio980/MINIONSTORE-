@@ -4,7 +4,7 @@ module.exports = {
   async execute(i, { bot, config }) {
     await i.deferReply();
     const e = new EmbedBuilder().setColor(config.cores.principal).setTitle(`💛 ${config.loja.nome.toUpperCase()} 💛`)
-      .setDescription('🇧🇷 A MELHOR LOJA DO BRASIL 🇧🇷\n\n✅ PIX seguro · ⚡ Imediata · 🛡️ Garantia · 💸 Afiliados 10%');
+      .setDescription('🇧🇷 A MELHOR LOJA DO BRASIL 🇧🇷\n✅ PIX · ⚡ Imediata · 🛡️ Garantia · 💸 Afiliados 10%');
     const b = new ActionRowBuilder().addComponents(bot.criarBotao('btn:abrirmenucomprar'), bot.criarBotao('btn:abrirticket'), bot.criarBotao('btn:regras'));
     const s = new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('menu:cats').setPlaceholder('📂 Categoria')
       .addOptions({label:'🎮 Contas',value:'contas'},{label:'💎 Diamantes',value:'diamantes'},{label:'👑 VIPs',value:'vips'},{label:'🎁 Gift',value:'gift'},{label:'📚 Cursos',value:'cursos'}));

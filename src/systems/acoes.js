@@ -1,6 +1,7 @@
 module.exports = (bot) => {
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, PermissionFlagsBits, ChannelType, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
+// ==================== DADOS ====================
 const PRODUTOS_PADRAO = [
   {id:'contas',nome:'🎮 Contas Premium',valor:49.90,estoque:999,desc:'Contas garantidas',midia:''},
   {id:'diamantes',nome:'💎 Diamantes',valor:19.90,estoque:999,desc:'Entrega imediata',midia:''},
@@ -12,24 +13,29 @@ const PRODUTOS_PADRAO = [
 const BOTOES_DISPONIVEIS = [
   {id:'btn:abrircadproduto',nome:'Cadastrar Produto',cor:ButtonStyle.Success,emoji:'➕'},
   {id:'btn:abrircriarcupom',nome:'Criar Cupom',cor:ButtonStyle.Primary,emoji:'🎟️'},
+  {id:'btn:abrirrlgift',nome:'Gift Card',cor:ButtonStyle.Secondary,emoji:'💳'},
   {id:'btn:abrirlgift',nome:'Gift Card',cor:ButtonStyle.Secondary,emoji:'💳'},
   {id:'btn:abrirtgift',nome:'Gift Card',cor:ButtonStyle.Secondary,emoji:'💳'},
   {id:'btn:relvendas',nome:'Relatório Vendas',cor:ButtonStyle.Primary,emoji:'📊'},
   {id:'btn:afil',nome:'Afiliados',cor:ButtonStyle.Secondary,emoji:'👥'},
   {id:'btn:cfg',nome:'Configurações',cor:ButtonStyle.Danger,emoji:'⚙️'},
   {id:'btn:abrirticket',nome:'Abrir Ticket',cor:ButtonStyle.Success,emoji:'📩'},
-  {id:'btn:abrirticketreal',nome:'Abrir Ticket',cor:ButtonStyle.Success,emoji:'📩'},
   {id:'btn:abrirmenucomprar',nome:'Comprar',cor:ButtonStyle.Success,emoji:'🛒'},
   {id:'btn:regras',nome:'Regras',cor:ButtonStyle.Secondary,emoji:'📜'}
 ];
-bot._produtos = bot._produtos?.length ? bot._produtos : PRODUTOS_PADRAO;
-bot._botoesCfg = bot._botoesCfg || {};
-bot._pedidos = bot._pedidos || {};
-bot._tickets = bot._tickets || {};
 
-// ✅ Função para registrar VÁRIOS IDs na MESMA ação (resolve TUDO)
+// ✅ CRIA TUDO DO ZERO AQUI — NÃO DEPENDE DE NENHUM OUTRO ARQUIVO
+bot._acoes = {};
+bot._produtos = PRODUTOS_PADRAO;
+bot._botoesCfg = {};
+bot._pedidos = {};
+bot._tickets = {};
+
+// ✅ Função que registra 1 ação em VÁRIOS IDs de uma vez
 const add = (ids, fn) => {
-  (Array.isArray(ids)?ids:[ids]).forEach(id => bot._acoes[id] = fn);
+  (Array.isArray(ids)?ids:[ids]).forEach(id => {
+    bot._acoes[id] = fn;
+  });
 };
 
 // ✅ Criar botão personalizado
@@ -41,7 +47,7 @@ bot.criarBotao = function(id) {
 };
 
 // ==============================================
-// 🔘 PAINEL ADMIN — TODOS OS IDS DA SUA IMAGEM ✅
+// 🔘 PAINEL ADMIN — TODOS OS IDS QUE JÁ APARECERAM NAS SUAS FOTOS
 // ==============================================
 const modalCadProduto = async (i) => {
   const m = new ModalBuilder().setCustomId('modal:cadproduto').setTitle('➕ NOVO PRODUTO');
@@ -54,7 +60,7 @@ const modalCadProduto = async (i) => {
   );
   await i.showModal(m);
 };
-// ✅ REGISTRA EM TODOS OS IDS POSSÍVEIS
+// ✅ TODAS AS VARIAÇÕES
 add(['btn:abrircadproduto','btn:cadproduto','btn:cadastrarproduto'], modalCadProduto);
 
 const modalCriarCupom = async (i) => {
@@ -77,8 +83,8 @@ const modalGift = async (i) => {
   );
   await i.showModal(m);
 };
-// ✅ OS DOIS IDS: com L e com T — AMBOS FUNCIONAM
-add(['btn:abrirlgift','btn:abrirtgift','btn:giftcard','btn:gift'], modalGift);
+// ✅ TODAS AS VARIAÇÕES — INCLUSIVE abrirrlgift (com 2 R) que apareceu AGORA
+add(['btn:abrirrlgift','btn:abrirlgift','btn:abrirtgift','btn:giftcard','btn:gift','btn:giftcardd'], modalGift);
 
 const relVendas = async (i) => {
   const lista = Object.values(bot._pedidos||{});
@@ -87,19 +93,18 @@ const relVendas = async (i) => {
     .addFields(
       {name:'💰 Total',value:`R$ ${total.toFixed(2)}`,inline:true},
       {name:'🛒 Pagas',value:`${lista.filter(p=>p.status==='PAGO').length}`,inline:true},
-      {name:'⏳ Pendentes',value:`${lista.filter(p=>p.status==='AGUARDANDO').length}`,inline:true},
-      {name:'❌ Canceladas',value:`${lista.filter(p=>p.status==='CANCELADO').length}`,inline:true}
+      {name:'⏳ Pendentes',value:`${lista.filter(p=>p.status==='AGUARDANDO').length}`,inline:true}
     );
   await i.followUp({embeds:[e],ephemeral:true});
 };
 add(['btn:relvendas','btn:relatorio','btn:vendas'], relVendas);
 
-const afiliados = async (i) => { await i.followUp({content:'👥 **Afiliados**\nUse `/afiliarme` para virar afiliado e ganhar 10% de comissão!',ephemeral:true}); };
+const afiliados = async (i) => { await i.followUp({content:'👥 **Afiliados**\nUse `/afiliarme` para ganhar 10% de comissão!',ephemeral:true}); };
 add(['btn:afil','btn:afiliados','btn:afiliar'], afiliados);
 
 const configs = async (i) => {
   const e = new EmbedBuilder().setColor('#dc2626').setTitle('⚙️ CONFIGURAÇÕES')
-    .setDescription('Comandos disponíveis:\n\n✅ **/configbotoes** → Personalizar texto/cor/emoji\n✅ **/configloja** → Dados da loja\n✅ **/configpix** → Chave PIX');
+    .setDescription('✅ **/configbotoes** → Personaliza botões\n✅ **/configloja** → Dados loja\n✅ **/configpix** → Chave PIX');
   await i.followUp({embeds:[e],ephemeral:true});
 };
 add(['btn:cfg','btn:config','btn:configuracoes'], configs);
@@ -121,15 +126,15 @@ const abrirTicket = async (i) => {
   });
   bot._tickets[ch.id]={usuario:i.user.id};
   const e=new EmbedBuilder().setColor(cfg.cores.info).setTitle(`🎫 Ticket #${ch.name.split('-')[1]}`)
-    .setDescription(`Olá ${i.user}!\n\n**📷 Você pode enviar FOTOS e VÍDEOS normalmente aqui.**\n\nDescreva seu problema:`);
+    .setDescription(`Olá ${i.user}!\n\n📷 Pode enviar FOTOS e VÍDEOS aqui.\n\nDescreva seu problema:`);
   const b=new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`btn:fecharticket:${ch.id}`).setLabel('🔒 Fechar').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId(`btn:chamaradm:${ch.id}`).setLabel('👥 Chamar Equipe').setStyle(ButtonStyle.Primary)
   );
   await ch.send({content:`${i.user} <@&${cfg.cargos?.admin||'1505876225946812440'}>`,embeds:[e],components:[b]});
-  await i.followUp({content:`✅ Ticket criado: ${ch}`,ephemeral:true});
+  await i.followUp({content:`✅ Ticket: ${ch}`,ephemeral:true});
 };
-add(['btn:abrirticket','btn:abrirticketreal','btn:abrirticketoficial','btn:abriraticket'], abrirTicket);
+add(['btn:abrirticket','btn:abrirticketreal','btn:abrirticketoficial','btn:abriraticket','btn:ticket'], abrirTicket);
 
 add(['btn:fecharticket_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':');
@@ -139,15 +144,13 @@ add(['btn:fecharticket_*'], async (i) => {
   await i.channel.send('🔒 Fechando em 5s...');
   setTimeout(()=>i.channel.delete().catch(()=>{}),5000);
 });
-
 add(['btn:chamaradm_*'], async (i) => {
   const cfg=bot.config;
-  await i.channel.send(`⚠️ ${i.user} chamou a equipe! <@&${cfg.cargos?.admin||'1505876225946812440'}>`);
+  await i.channel.send(`⚠️ ${i.user} chamou equipe! <@&${cfg.cargos?.admin||'1505876225946812440'}>`);
 });
-
 add(['btn:regras'], async (i) => {
-  const e=new EmbedBuilder().setColor(bot.config.cores.aviso).setTitle('📜 REGRAS DA LOJA')
-    .setDescription('1️⃣ Chargeback = BAN permanente\n2️⃣ Pagamentos somente via PIX\n3️⃣ Não compartilhe o produto\n4️⃣ Respeite a equipe de atendimento');
+  const e=new EmbedBuilder().setColor(bot.config.cores.aviso).setTitle('📜 REGRAS')
+    .setDescription('1️⃣ Chargeback = BAN\n2️⃣ Só PIX\n3️⃣ Não compartilhe produto\n4️⃣ Respeite a equipe');
   await i.followUp({embeds:[e],ephemeral:true});
 });
 
@@ -161,22 +164,19 @@ add(['modal:cadproduto'], async (i) => {
   if(isNaN(preco)) return i.reply({content:'❌ Preço inválido',ephemeral:true});
   const novo={id:'prod'+Date.now(),nome,valor:preco,estoque:est,desc,midia}; bot._produtos.push(novo);
   const e=new EmbedBuilder().setColor('#10b981').setTitle('✅ PRODUTO CADASTRADO')
-    .addFields({name:'Nome',value:nome,inline:true},{name:'Preço',value:`R$ ${preco.toFixed(2)}`,inline:true},{name:'Mídia',value:midia||'Sem foto/vídeo'});
+    .addFields({name:'Nome',value:nome,inline:true},{name:'Preço',value:`R$ ${preco.toFixed(2)}`,inline:true},{name:'Mídia',value:midia||'Sem foto'});
   if(midia) e.setImage(midia);
-  await i.reply({content:'✅ Já aparece no menu de compra!',embeds:[e],ephemeral:true});
+  await i.reply({content:'✅ Já aparece no menu!',embeds:[e],ephemeral:true});
 });
-
 add(['modal:criarcupom'], async (i) => {
   const cod=i.fields.getTextInputValue('cod').toUpperCase(), pct=parseInt(i.fields.getTextInputValue('pct'));
-  const usos=parseInt(i.fields.getTextInputValue('usos')), dias=parseInt(i.fields.getTextInputValue('dias'));
-  const e=new EmbedBuilder().setColor('#3b82f6').setTitle('🎟️ CUPOM CRIADO')
-    .addFields({name:'Código',value:`\`${cod}\``,inline:true},{name:'%',value:`${pct}%`,inline:true},{name:'Usos',value:`${usos}`,inline:true},{name:'Validade',value:`${dias} dias`,inline:true});
+  const e=new EmbedBuilder().setColor('#3b82f6').setTitle('🎟️ CUPOM')
+    .addFields({name:'Código',value:`\`${cod}\``,inline:true},{name:'%',value:`${pct}%`,inline:true});
   await i.reply({embeds:[e],ephemeral:true});
 });
-
 add(['modal:giftcard'], async (i) => {
   const valor=parseFloat(i.fields.getTextInputValue('valor')), qtd=parseInt(i.fields.getTextInputValue('qtd'));
-  const cods=Array.from({length:qtd},()=>'GIFT-'+Math.random().toString(36).slice(2,8).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase());
+  const cods=Array.from({length:qtd},()=>'GIFT-'+Math.random().toString(36).slice(2,8).toUpperCase());
   await i.reply({content:`💳 **${qtd}x Gift R$ ${valor.toFixed(2)}:**\n\`\`\`${cods.join('\n')}\`\`\``,ephemeral:true});
 });
 
@@ -199,18 +199,15 @@ add(['menu:escolherproduto'], async (i) => {
   );
   await i.update({content:'',embeds:[embed],files:[anexoQr],components:[b]});
 });
-
 add(['btn:pixcopiar_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':'), ped=bot._pedidos[id];
-  if(!ped) return i.followUp({content:'❌ Pedido não encontrado',ephemeral:true});
+  if(!ped) return i.followUp({content:'❌ Não encontrado',ephemeral:true});
   await i.followUp({content:`📋 **PIX:**\n\`\`\`${ped.pixPayload}\`\`\``,ephemeral:true});
 });
-
 add(['btn:admpagar_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':');
-  if(!i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.followUp({content:'🚫 **SÓ ADMINISTRADORES** confirmam!',ephemeral:true});
-  const ped=bot._pedidos[id]; if(!ped) return i.followUp({content:'❌ Não encontrado',ephemeral:true});
-  if(ped.status==='PAGO') return i.followUp({content:'⚠️ Já foi pago!',ephemeral:true});
+  if(!i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.followUp({content:'🚫 SÓ ADM!',ephemeral:true});
+  const ped=bot._pedidos[id]; if(!ped||ped.status==='PAGO') return i.followUp({content:ped?'⚠️ Já pago':'❌ Não encontrado',ephemeral:true});
   ped.status='PAGO';
   const cfg=bot.config;
   const {embed,anexoQr}=await bot.comprovante.gerarComprovante({usuario:ped.usuarioTag,produto:ped.produto,valor:ped.valor,pedidoId:id,status:'PAGO',chavePix:cfg.pix.chave,titular:cfg.pix.titular,pixPayload:ped.pixPayload});
@@ -226,14 +223,12 @@ add(['btn:admpagar_*'], async (i) => {
   }catch(e){}
   await i.followUp({content:`✅ \`${id}\` PAGO!`,ephemeral:true});
 });
-
 add(['btn:pixcancelar_*'], async (i) => {
   const id=i.customId.split(':').slice(2).join(':'), ped=bot._pedidos[id]; if(!ped) return;
   if(i.user.id!==ped.usuario && !i.member.permissions.has(PermissionFlagsBits.Administrator)) return i.followUp({content:'🚫',ephemeral:true});
   ped.status='CANCELADO'; await i.message.delete().catch(()=>{});
   await i.followUp({content:`❌ \`${id}\` cancelado.`,ephemeral:true});
 });
-
 const abrirCompra = async (i) => {
   const m=new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('menu:escolherproduto').setPlaceholder('🛒 Escolha')
     .addOptions(bot._produtos.slice(0,25).map(p=>({label:p.nome.slice(0,25),description:`R$ ${Number(p.valor).toFixed(2)}`,value:p.id}))));
@@ -251,13 +246,12 @@ add(['menu:editarbotao'], async (i) => {
   const corNum = {[ButtonStyle.Primary]:1,[ButtonStyle.Secondary]:2,[ButtonStyle.Success]:3,[ButtonStyle.Danger]:4};
   const m = new ModalBuilder().setCustomId(`modal:editbotao:${bid}`).setTitle(`🎨 Editar: ${p.nome}`);
   m.addComponents(
-    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('nome').setLabel('Texto do botão').setStyle(1).setValue(a.nome||p.nome).setRequired(true).setMaxLength(40)),
+    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('nome').setLabel('Texto').setStyle(1).setValue(a.nome||p.nome).setRequired(true).setMaxLength(40)),
     new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('emoji').setLabel('Emoji').setStyle(1).setValue(a.emoji||p.emoji||'').setRequired(false).setMaxLength(4)),
     new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('cor').setLabel('1=Azul 2=Cinza 3=Verde 4=Vermelho').setStyle(1).setValue(String(corNum[a.cor]||corNum[p.cor]||3)).setRequired(true).setMaxLength(1))
   );
   await i.showModal(m);
 });
-
 add(['modal:editbotao_*'], async (i) => {
   const bid = i.customId.split(':').slice(2).join(':');
   const nome = i.fields.getTextInputValue('nome').trim();
@@ -267,18 +261,24 @@ add(['modal:editbotao_*'], async (i) => {
   const corMap = {1:ButtonStyle.Primary,2:ButtonStyle.Secondary,3:ButtonStyle.Success,4:ButtonStyle.Danger};
   const corNome = {1:'Azul',2:'Cinza',3:'Verde',4:'Vermelho'};
   bot._botoesCfg[bid] = { nome, emoji, cor:corMap[cor] };
-  await i.reply({content:`✅ **Botão atualizado!**\n\n\`${bid}\`\n**Texto:** ${emoji} ${nome}\n**Cor:** ${corNome[cor]}`,ephemeral:true});
+  await i.reply({content:`✅ **Atualizado!**\n\`${bid}\`\n${emoji} ${nome} — ${corNome[cor]}`,ephemeral:true});
 });
-
-add(['btn:resetarbotoes'], async (i) => {
-  bot._botoesCfg = {};
-  await i.followUp({content:'🔄 Todos resetados!',ephemeral:true});
-});
+add(['btn:resetarbotoes'], async (i) => { bot._botoesCfg = {}; await i.followUp({content:'🔄 Resetados!',ephemeral:true}); });
 
 // ==============================================
-// 🧩 FALTA ALGUM ID? ELE VEM AQUI E NUNCA MAIS DÁ ERRO
+// 🧩 OUTROS BOTÕES (nunca mais dá erro)
 // ==============================================
-const resto = ['btn:pedidos','btn:afiliar','btn:ajuda','btn:ganhos','btn:saque','btn:ind','btn:cupons','btn:addusuario_*','btn:configpix','btn:configloja'];
-resto.forEach(id => add(id, async (i)=>{await i.followUp({content:`⚙️ **${id}** — em desenvolvimento! 🚀`,ephemeral:true})}));
+const dev = async (i)=>{await i.followUp({content:`⚙️ **${i.customId}** — em desenvolvimento! 🚀`,ephemeral:true})};
+['btn:pedidos','btn:afiliar','btn:ajuda','btn:ganhos','btn:saque','btn:ind','btn:cupons','btn:addusuario_*','btn:configpix','btn:configloja','btn:abrirticketreal'].forEach(id => add(id, dev));
 
-}; // ✅ FIM — NADA ESCRITO DEPOIS DISSO
+// ==============================================
+// ✅ LOG FINAL — VOCÊ VÊ ISSO NO RENDER
+// ==============================================
+const total = Object.keys(bot._acoes).length;
+console.log('\n========================================');
+console.log(`✅ AÇÕES CARREGADAS: ${total}`);
+console.log('========================================');
+Object.keys(bot._acoes).sort().forEach(k => console.log('   ✅', k));
+console.log('========================================\n');
+
+}; // ✅ FIM DO ARQUIVO — NADA DEPOIS DISSO
