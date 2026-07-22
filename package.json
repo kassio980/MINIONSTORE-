@@ -14,10 +14,11 @@
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
-    "@napi-rs/canvas": "^0.1.53",
+    "@napi-rs/canvas": "^0.1.100",
     "discord.js": "^14.15.0",
     "dotenv": "^17.4.2",
     "express": "^4.19.0",
+    "qrcode": "^1.5.4",
     "sodium-native": "^5.1.0"
   }
 }

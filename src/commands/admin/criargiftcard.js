@@ -1,11 +1,12 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 module.exports = {
-  data: new SlashCommandBuilder().setName('criargiftcard').setDescription('Criar gift card')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-  async execute(interaction, dados) {
-    const { bot, config, db, ui, extras, gerImg, lb } = dados;
-    try {
-      await interaction.reply({ content: '✅ /criargiftcard funcionando!', ephemeral: true });
-    } catch (e) { console.error('criargiftcard:', e.message); }
+  data: new SlashCommandBuilder().setName('criargiftcard').setDescription('Criar gift card').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+  async execute(i) {
+    const m = new ModalBuilder().setCustomId('modal:giftcard').setTitle('💳 GIFT CARD');
+    m.addComponents(
+      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('valor').setLabel('Valor ex: 50.00').setStyle(TextInputStyle.Short).setRequired(true)),
+      new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('qtd').setLabel('Quantidade').setStyle(TextInputStyle.Short).setValue('1').setRequired(true))
+    );
+    await i.showModal(m);
   }
 };
